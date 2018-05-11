@@ -12,11 +12,13 @@ from numpy.random import uniform, choice
 from matplotlib.patches import Circle
 from math import sqrt
 
+
 width = 1
 height = 1
 
 list_of_circles = []
 list_without_radius = []
+list_of_clusters = []
 
 def generate_circles(n):
     while len(list_of_circles) < n: #as long as the list of circles is not full     
@@ -68,13 +70,22 @@ print("Clean linkage table : ",clean_linkage_matrix)
 plt.subplot(222)
 set_link_color_palette(['m', 'c', 'y', 'k'])
 
-print("\ndendrogram:")
 dendrogram = dendrogram(linkage_matrix)
 
+# set up figure n°2 for the circle packing layout
 plt.figure(2, figsize=(10,10))
 ax2 = plt.subplot(223)
 plt.axis([0,1,0,1])
 ax2.set_aspect('equal')
+
+def new_cluster_id():
+    """ Determines the id of each new cluster to be entered in the list of clusters """
+    id = len(list_of_circles) - 1
+    for i in list_of_clusters:
+        if i[0] > id:
+            id = i[0]
+    id += 1
+    return id
 
 def plot_two_first_circle():
     """ Plot the two first circles of the linkage table """
@@ -96,8 +107,17 @@ def plot_two_first_circle():
     y2 = choice(two_possib)
     circle2 = plt.Circle((x2,y2),r2,fill=False)
     ax2.add_artist(circle2)
+    list_of_clusters.append((new_cluster_id(),(x1,y1,r1),(x2,y2,r2)))
+    clean_linkage_matrix.pop(0)
+    print("LT after removal of first element",clean_linkage_matrix)
+    print("list of clusters : ",list_of_clusters)
     
 plot_two_first_circle()
+print("list of circles already packed : ",list_of_clusters)
+
+#def add_singleton():
+    
+    
 
 
 
