@@ -56,6 +56,15 @@ print("\ndist matrix:",dist_matrix)
 linkage_matrix = linkage(dist_matrix, method = 'single')
 print('\nlinkage matrix is:\n', linkage_matrix)
 
+# keep only the clusters' id and convert them into int for following processing
+clean_linkage_matrix = []
+for i in linkage_matrix:
+    cluster_one = int(i[0])
+    cluster_two = int(i[1])
+    clean_linkage_matrix.append([cluster_one,cluster_two])
+print("Clean linkage table : ",clean_linkage_matrix)
+
+# set up the subplot for the dendrogram tree    
 plt.subplot(222)
 set_link_color_palette(['m', 'c', 'y', 'k'])
 
@@ -68,15 +77,15 @@ plt.axis([0,1,0,1])
 ax2.set_aspect('equal')
 
 def plot_two_first_circle():
-    """ Plot the two first circle of the linkage table """
-    id_of_circle = int(linkage_matrix[0][0])
+    """ Plot the two first circles of the linkage table """
+    id_of_circle = int(clean_linkage_matrix[0][0])
     x1 = list_of_circles[id_of_circle][0]
     y1 = list_of_circles[id_of_circle][1]
     r1 = list_of_circles[id_of_circle][2]
     circle = plt.Circle((x1,y1),r1,fill=False)
     ax2.add_artist(circle)
     
-    id_of_circle = int(linkage_matrix[0][1])
+    id_of_circle = int(clean_linkage_matrix[0][1])
     r2 = list_of_circles[id_of_circle][2]
     x2 = uniform(x1-r1-r2,high = x1+r1+r2) # select a random float for x2 which has to be at r2 distance of C1
     # it creates 2 possibilities for y2, we then choose randomly one of them to have y2
