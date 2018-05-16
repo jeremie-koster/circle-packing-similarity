@@ -10,7 +10,7 @@ from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 from numpy.random import uniform, choice
 from matplotlib.patches import Circle
-from math import sqrt
+from math import sqrt,atan,degrees,cos,sin,atan2,pi
 
 
 width = 1
@@ -24,7 +24,7 @@ def generate_circles(n):
     while len(list_of_circles) < n: #as long as the list of circles is not full     
         x = uniform(0.05, high = width - 0.05)
         y = uniform(0.05, high = width - 0.05)
-        r = uniform(0.05, high = 0.05)
+        r = uniform(0.02, high = 0.05)
         list_of_circles.append((x,y,r))
     
 def take_radius_out(list):
@@ -64,7 +64,7 @@ for i in linkage_matrix:
     cluster_one = int(i[0])
     cluster_two = int(i[1])
     clean_linkage_matrix.append([cluster_one,cluster_two])
-print("Clean linkage table : ",clean_linkage_matrix)
+print("\nClean linkage table : ",clean_linkage_matrix)
 
 # set up the subplot for the dendrogram tree    
 plt.subplot(222)
@@ -75,7 +75,7 @@ dendrogram = dendrogram(linkage_matrix)
 # set up figure n°2 for the circle packing layout
 plt.figure(2, figsize=(10,10))
 ax2 = plt.subplot(223)
-plt.axis([0,1,0,1])
+plt.axis([-0.1,1,0,1])
 ax2.set_aspect('equal')
 
 def new_cluster_id():
@@ -87,7 +87,7 @@ def new_cluster_id():
     id += 1
     return id
 
-def plot_two_first_circle():
+def plot_two_first_circles():
     """ Plot the two first circles of the linkage table """
     id_of_circle = int(clean_linkage_matrix[0][0])
     x1 = list_of_circles[id_of_circle][0]
@@ -107,15 +107,91 @@ def plot_two_first_circle():
     y2 = choice(two_possib)
     circle2 = plt.Circle((x2,y2),r2,fill=False)
     ax2.add_artist(circle2)
-    list_of_clusters.append((new_cluster_id(),(x1,y1,r1),(x2,y2,r2)))
+    id_of_cluster = new_cluster_id()
+    list_of_clusters.append((id_of_cluster,(x1,y1,r1),(x2,y2,r2)))
     clean_linkage_matrix.pop(0)
     print("LT after removal of first element",clean_linkage_matrix)
     print("list of clusters : ",list_of_clusters)
     
-plot_two_first_circle()
+plot_two_first_circles()
 print("list of circles already packed : ",list_of_clusters)
 
-#def add_singleton():
+def add_singleton():
+    # temporary version
+    two_circles = [] # initialize list to contain the 2 circles of the cluter
+    r3 = None
+    for i in clean_linkage_matrix: # looking for the next element in the LT that has the 1st cluster of 2 and a singleton
+        if ((i[0] == list_of_clusters[0][0]) and (i[1] < list_of_clusters[0][0])):
+            print("i:",i)
+            id_of_singleton = i[1]
+            id_of_existing_cluster = i[0]
+            print("id of singleton", i[1])
+            print("id of existing cluster",i[0])            
+            r3 = list_of_circles[id_of_singleton][2]
+            for j in list_of_clusters:
+                if (j[0] == id_of_existing_cluster):
+                    print("j[0] = ",j[0])
+                    two_circles.append((j[1][0],j[1][1],j[1][2]))
+                    two_circles.append((j[2][0],j[2][1],j[2][2]))
+        elif ((i[1] == list_of_clusters[0][0]) and (i[0] < list_of_clusters[0][0])):
+            print("i:",i)
+            id_of_singleton = i[0]
+            id_of_existing_cluster = i[1]            
+            print("id of existing cluster",i[1])            
+            print("id of singleton", i[0])
+            r3 = list_of_circles[id_of_singleton][2]
+            for j in list_of_clusters: # get coord of the 2 circles of the cluster to pass to next function to determine coord of 3rd circle
+                if (j[0] == id_of_existing_cluster):
+                    print("j[0] = ",j[0])
+                    two_circles.append((j[1][0],j[1][1],j[1][2]))
+                    two_circles.append((j[2][0],j[2][1],j[2][2]))
+        else:
+            continue
+    print("two circles:",two_circles)
+    c1 = (two_circles[0])
+    c2 = (two_circles[1])               
+    return find_coord_centre_of_third_circle(c1,c2,r3)
+                    
+def find_coord_centre_of_third_circle(c1,c2,r3):
+    """ Function that computes coordinates (x,y) and (x',y') of 3rd circle C3 that touches the 2 other circles C1 and C2. Takes as parameters tuples of the coordinates and radius of C1 and C2, and the radius of C3 """
+    x1,y1,r1,x2,y2,r2,r3 = c1[0], c1[1], c1[2], c2[0], c2[1], c2[2], r3
+    # solving coordinates of C3 given that C1 and C2 centres are on x axis (Pythagorus)
+    x = ((r1+r2)**2 + (r1+r3)**2 - (r2+r3)**2)/(2*(r1+r2))
+    y = sqrt((r1+r3)**2 - x**2)
+    
+    circletemp = plt.Circle((x,y),r3,ec = 'b',fill=False)
+    ax2.add_artist(circletemp)
+    
+    # rotating and translating the result for general case
+    coef_line = (y2-y1)/(x2-x1)
+    tan_alpha = abs((coef_line-1)/(1+(coef_line*1)))
+#    tan_alpha = 1-coef_line
+    alpha = atan(tan_alpha) # in radians
+# =============================================================================
+#     alpha = atan2(y1,x1)
+#     d2r = pi/180
+#     alpha/d2r
+#     
+# =============================================================================
+# =============================================================================
+#     x3prim = x*cos(alpha) - y*sin(alpha)
+#     y3prim = x*sin(alpha) + y*cos(alpha)
+# =============================================================================
+# =============================================================================
+#     x3prim = x + x1
+#     y3prim = y + y1
+#     circletemp2 = plt.Circle((x3prim,y3prim),r3,ec = 'green',fill=False)
+#     ax2.add_artist(circletemp2)
+# =============================================================================
+    
+    x3 = x*cos(alpha)-y*sin(alpha) + x1
+    y3 = x*sin(alpha)+y*cos(alpha) + y1
+    circle = plt.Circle((x3,y3),r3,ec = 'r',fill=False)
+    ax2.add_artist(circle)
+    return (x3,y3,r3)
+
+add_singleton()
+    
     
     
 
