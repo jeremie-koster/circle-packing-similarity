@@ -159,30 +159,8 @@ def find_coord_centre_of_third_circle(c1,c2,r3):
     x = ((r1+r2)**2 + (r1+r3)**2 - (r2+r3)**2)/(2*(r1+r2))
     y = sqrt((r1+r3)**2 - x**2)
     
-    circletemp = plt.Circle((x,y),r3,ec = 'b',fill=False)
-    ax2.add_artist(circletemp)
-    
     # rotating and translating the result for general case
-    coef_line = (y2-y1)/(x2-x1)
-    tan_alpha = abs((coef_line-1)/(1+(coef_line*1)))
-#    tan_alpha = 1-coef_line
-    alpha = atan(tan_alpha) # in radians
-# =============================================================================
-#     alpha = atan2(y1,x1)
-#     d2r = pi/180
-#     alpha/d2r
-#     
-# =============================================================================
-# =============================================================================
-#     x3prim = x*cos(alpha) - y*sin(alpha)
-#     y3prim = x*sin(alpha) + y*cos(alpha)
-# =============================================================================
-# =============================================================================
-#     x3prim = x + x1
-#     y3prim = y + y1
-#     circletemp2 = plt.Circle((x3prim,y3prim),r3,ec = 'green',fill=False)
-#     ax2.add_artist(circletemp2)
-# =============================================================================
+    alpha = atan2(y2-y1,x2-x1)
     
     x3 = x*cos(alpha)-y*sin(alpha) + x1
     y3 = x*sin(alpha)+y*cos(alpha) + y1
