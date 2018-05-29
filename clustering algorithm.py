@@ -13,20 +13,51 @@ import numpy as np
 from matplotlib.patches import Circle
 from math import sqrt,atan,degrees,cos,sin,atan2,pi
 
+# --------------------- GLOBAL VARIABLES ------------------------ #
 
 width = 1
 height = 1
 
-list_of_circles = []
-list_without_radius = []
-list_of_clusters = []
+list_of_circles = [] # to compute the linkage table only
+list_without_radius = [] # to compute the linkage table only
+list_of_leaves = [] # list of LeafCircle objects 
+list_of_clusters = [] # TO DELETE
+
+# ---------------------- CLASSES ------------------------------ #
+
+class LeafCircle:
+    def __init__(self,id,x,y,radius):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.homogeneous_coord = [[self.x],[self.y],[1]]
+        self.r = radius
+        
+class Cluster:
+    def __init__(self,id,LeafCircle1,LeafCircle2):
+        self.id = id
+        self.circles = []
+        self.add_circle_to_cluster(LeafCircle1)
+        self.add_circle_to_cluster(LeafCircle2)
+        
+    def setId(self,new_id):
+        self.id = new_id
+        
+    def add_circle_to_cluster (self,circle_to_add):
+        self.circles.append(circle_to_add)
+      
+# ------------------------- LINKAGE TABLE CREATION ----------------- #        
 
 def generate_circles(n):
-    while len(list_of_circles) < n: #as long as the list of circles is not full     
+    global number_of_leaves
+    while len(list_of_circles) < n: # as long as the list of circles is not full     
+        print("id: ",len(list_of_circles))
         x = uniform(0.05, high = width - 0.05)
         y = uniform(0.05, high = width - 0.05)
         r = uniform(0.02, high = 0.05)
-        list_of_circles.append((x,y,r))
+        list_of_circles.append([x,y,r])
+        list_of_leaves.append(LeafCircle(len(list_of_circles),0,0,r)) # add LeafCircle objects
+        
     
 def take_radius_out(list):
     for item in list:
@@ -59,7 +90,7 @@ print("\ndist matrix:",dist_matrix)
 linkage_matrix = linkage(dist_matrix, method = 'single')
 print('\nlinkage matrix is:\n', linkage_matrix)
 
-# keep only the clusters' id and convert them into int for following processing
+# keep only the clusters' id from linkage table and convert them into int for following processing
 clean_linkage_matrix = []
 for i in linkage_matrix:
     cluster_one = int(i[0])
@@ -79,6 +110,8 @@ ax2 = plt.subplot(223)
 plt.axis([-0.1,1,0,1])
 ax2.set_aspect('equal')
 
+# ---------------------------- NEXT STEP -------------------------- #
+
 def new_cluster_id():
     """ Determines the id of each new cluster to be entered in the list of clusters """
     id = len(list_of_circles) - 1
@@ -89,7 +122,7 @@ def new_cluster_id():
     return id
 
 def plot_two_first_circles():
-    """ Plot the two first circles of the linkage table """
+    """ Plot the two first circles of the first element of the linkage table """
     id_of_circle = int(clean_linkage_matrix[0][0])
     x1 = list_of_circles[id_of_circle][0]
     y1 = list_of_circles[id_of_circle][1]
