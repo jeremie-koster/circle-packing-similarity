@@ -14,7 +14,9 @@ from matplotlib.patches import Circle
 from math import sqrt,cos,sin,atan2,pi
 import itertools as it
 
+# --------------------------------------------------------------- #
 # --------------------- GLOBAL VARIABLES ------------------------ #
+# --------------------------------------------------------------- #
 
 width = 1
 height = 1
@@ -25,7 +27,9 @@ list_of_clusters = [] # list that stores all LeafCircle and Cluster objects
 counter_for_cluster_id = 0 # counter to set id of new cluster objects
 number_of_leaves = 0 # only counts the nb of leaves (generated in the beginning)
 
+# ------------------------------------------------------------- #
 # ---------------------- CLASSES ------------------------------ #
+# ------------------------------------------------------------- #
 
 class LeafCircle:
     def __init__(self,id,x,y,radius):
@@ -36,10 +40,12 @@ class LeafCircle:
         self.r = radius
         
     def joinWith (self,circle_to_join): # general function
-        if (circle_to_join.id < len(number_of_leaves)): # if joining singleton with singleton
+        if (circle_to_join.id < number_of_leaves): # if joining singleton with singleton
             self.joinToSingleton(circle_to_join)
-        elif (circle_to_join.id >= len(number_of_leaves)): # or if joining singleton with cluster
+            print("Join done!")
+        elif (circle_to_join.id >= number_of_leaves): # or if joining singleton with cluster
             circle_to_join.addSingleton(self)
+            print("Join done!")
         
     def joinToSingleton (self,circle_to_add): # 1 + 1
         global counter_for_cluster_id
@@ -47,10 +53,7 @@ class LeafCircle:
         circle_to_add.y = 0 # 2nd circle on x axis
         list_of_clusters.append(Cluster(counter_for_cluster_id,self,circle_to_add))
         counter_for_cluster_id =+ 1
-        
-        
-        
-        
+           
 class Cluster:
     def __init__(self,id,LeafCircle1,LeafCircle2):
         self.id = id
@@ -68,16 +71,18 @@ class Cluster:
         self.circles.append(circle_to_add)
         
     def joinWith(self,circle_to_join):
-        if (circle_to_join.id < len(number_of_leaves)): # joining cluster with singleton
+        if (circle_to_join.id < number_of_leaves): # joining cluster with singleton
             self.addSingleton(circle_to_join)
-        elif (circle_to_join.id >= len(number_of_leaves)): # joining cluster with cluster
+            print("Join done!")
+        elif (circle_to_join.id >= number_of_leaves): # joining cluster with cluster
             print("Not developped yet") # TODO: function n + n (see Mike's idea)
+            print("Join done!")
         
     def addSingleton(self,singleton): # n + 1 function
         """ Function that adds a singleton to a cluster. 
         For each pair of the cluster, if the pair is not too distant, do 1+2 function and store the 2 possibilities. Then, exclude all overlapping elements and choose best possib. Adds the circle object to the list of circles of the cluster, and 'creates' new cluster by changing id   """
         list_of_possib = [] # list of possibilities (should contain LeafCircle objects)
-        for pair in it.combinations(self,2):
+        for pair in it.combinations(self.circles,2):
             if ((pair[1].x - pair[0].x)**2 + (pair[1].y - pair[0].y)**2 <= ((2*singleton.r) + pair[0].r + pair[1].r)**2): # check if the circles of the pair are not too distant from each other
                 list_of_possib.extend(twoPlusOne(pair,singleton)) # add the 2 possib when doing 2 + 1
         for element in list_of_possib: # remove overlapping elements
@@ -105,85 +110,24 @@ class Cluster:
             elif (longest_distances[0][0] < longest_distances[1][0]):
                 del longest_distances[1][0]
         return longest_distances[0][1] # return LeafCircle object corresponding to smallest dist
-      
-# ------------------------- LINKAGE TABLE CREATION ----------------- #        
-
-def generate_circles(n):
-    global counter_for_cluster_id
-    global number_of_leaves
-    while len(list_of_circles) < n: # as long as the list of circles is not full     
-        print("id: ",len(list_of_circles))
-        x = uniform(0.05, high = width - 0.05)
-        y = uniform(0.05, high = width - 0.05)
-        r = uniform(0.02, high = 0.05)
-        list_of_circles.append([x,y,r])
-        list_of_clusters.append(LeafCircle(len(list_of_circles),0,0,r)) # add LeafCircle objects
-    counter_for_cluster_id = n
-    number_of_leaves = n
-        
     
-def take_radius_out(list):
-    for item in list:
-        list_without_radius.append((item[0],item[1]))
-    return list_without_radius
-
-generate_circles(10)
-print("\nlist:",list_of_circles)  
-print("\nthere are",len(list_of_circles)," elements in the list")   
-
-list_without_radius = take_radius_out(list_of_circles)
-print ("\nlist without radius :",list_without_radius)
-
-fig1 = plt.figure()
-ax1 = fig1.add_subplot(221)
-ax1.set_aspect('equal')
-ax1.set_xlim((0,1.5))
-ax1.set_ylim((0,1.5))
-
-for i in list_of_circles:
-    x = i[0]
-    y = i[1]
-    r = i[2]
-    circle = plt.Circle((x,y),r,fill=False)
-    ax1.add_artist(circle)
-
-dist_matrix = pdist(list_without_radius,'euclidean')
-print("\ndist matrix:",dist_matrix)
-
-linkage_matrix = linkage(dist_matrix, method = 'single')
-print('\nlinkage matrix is:\n', linkage_matrix)
-
-# keep only the clusters' id from linkage table and convert them into int for following processing
-clean_linkage_matrix = []
-for i in linkage_matrix:
-    cluster_one = int(i[0])
-    cluster_two = int(i[1])
-    clean_linkage_matrix.append([cluster_one,cluster_two])
-print("\nClean linkage table : ",clean_linkage_matrix)
-
-# set up the subplot for the dendrogram tree    
-plt.subplot(222)
-set_link_color_palette(['m', 'c', 'y', 'k'])
-
-dendrogram = dendrogram(linkage_matrix)
-
-# set up figure n°2 for the circle packing layout
-plt.figure(2, figsize=(10,10))
-ax2 = plt.subplot(223)
-plt.axis([-0.1,1,0,1])
-ax2.set_aspect('equal')
-
-# ---------------------------- NEXT STEP -------------------------- #
+# ------------------------------------------------------------------- #     
+# ------------------------- FUNCTIONS ------------------------------- #
+# ------------------------------------------------------------------- #
 
 def runLinkageTable():
-    while len(clean_linkage_matrix) != 0:
+    while len(clean_linkage_matrix) > 0: # as long as LT is not empty...
         id_of_first_cluster = clean_linkage_matrix[0][0]
         id_of_second_cluster = clean_linkage_matrix[0][1]
+        print("I want to join {0} with {1}".format(id_of_first_cluster,id_of_second_cluster))
         for c in list_of_clusters:
             for d in list_of_clusters:
-                if ((c.id == id_of_first_cluster | c.id == id_of_second_cluster) & (d.id == id_of_first_cluster | d.id == id_of_second_cluster)):
+                if ((c.id == id_of_first_cluster) & (d.id == id_of_second_cluster)):
+                    print("Trying to join {0} with {1}".format(c.id,d.id))
                     c.joinWith(d)
                     clean_linkage_matrix.pop(0) # deletes current element after use
+                else:
+                    print("Wrong combination: c.id = {0} and d.id = {1} // LT asks for {2} and {3}".format(c.id,d.id,id_of_first_cluster,id_of_second_cluster))
                     
 def transform(translation, angle):
     """ Creates an array to apply translation and rotation to a point """
@@ -237,7 +181,81 @@ def twoPlusOne(cluster,singleton): # 2 + 1 function
     list_to_return.append(LeafCircle('no_id',C3[0][0],C3[1][0],r3))
     list_to_return.append(LeafCircle('no_id',C3_symmetric[0][0],C3[1][0],r3))
     
-    return list_to_return
+    return list_to_return        
+    
+# ------------------------------------------------------------------ #
+# ------------------------- LINKAGE TABLE CREATION ----------------- #
+# ------------------------------------------------------------------ #        
+
+def generate_circles(n):
+    global counter_for_cluster_id
+    global number_of_leaves
+    while len(list_of_circles) < n: # as long as the list of circles is not full     
+        print("id: ",len(list_of_circles))
+        x = uniform(0.05, high = width - 0.05)
+        y = uniform(0.05, high = width - 0.05)
+        r = uniform(0.02, high = 0.05)
+        list_of_clusters.append(LeafCircle(len(list_of_circles),0,0,r)) # add LeafCircle object
+        list_of_circles.append([x,y,r])
+    counter_for_cluster_id = n
+    number_of_leaves = n
+        
+    
+def take_radius_out(list):
+    for item in list:
+        list_without_radius.append((item[0],item[1]))
+    return list_without_radius
+
+generate_circles(5)
+print("\nlist:",list_of_circles)  
+print("\nthere are",len(list_of_circles)," elements in the list")   
+
+list_without_radius = take_radius_out(list_of_circles)
+print ("\nlist without radius :",list_without_radius)
+
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(221)
+ax1.set_aspect('equal')
+ax1.set_xlim((0,1.5))
+ax1.set_ylim((0,1.5))
+
+for i in list_of_circles:
+    x = i[0]
+    y = i[1]
+    r = i[2]
+    circle = plt.Circle((x,y),r,fill=False)
+    ax1.add_artist(circle)
+
+dist_matrix = pdist(list_without_radius,'euclidean')
+print("\ndist matrix:",dist_matrix)
+
+linkage_matrix = linkage(dist_matrix, method = 'single')
+print('\nlinkage matrix is:\n', linkage_matrix)
+
+# keep only the clusters' id from linkage table and convert them into int for following processing
+clean_linkage_matrix = []
+for i in linkage_matrix:
+    cluster_one = int(i[0])
+    cluster_two = int(i[1])
+    clean_linkage_matrix.append([cluster_one,cluster_two])
+print("\nClean linkage table : ",clean_linkage_matrix)
+
+# set up the subplot for the dendrogram tree    
+plt.subplot(222)
+set_link_color_palette(['m', 'c', 'y', 'k'])
+
+dendrogram = dendrogram(linkage_matrix)
+
+# set up figure n°2 for the circle packing layout
+plt.figure(2, figsize=(10,10))
+ax2 = plt.subplot(223)
+plt.axis([-0.1,1,0,1])
+ax2.set_aspect('equal')
+
+runLinkageTable()
+
+# ----- END ------- #
+
 
     
     
