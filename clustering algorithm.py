@@ -143,6 +143,7 @@ class Cluster:
                 del longest_distances[0]
             elif (longest_distances[0][0] < longest_distances[1][0]):
                 del longest_distances[1]
+        print("length longest distances list",len(longest_distances))
         return longest_distances[0][1] # return LeafCircle object corresponding to smallest dist
     
 # ------------------------------------------------------------------- #     
@@ -178,11 +179,11 @@ def checkIntersection(cluster,circle_to_check):
     circles_in_cluster = cluster.circles # list of circles (as LeafCircle objects) that are in the cluster to which we want to check any intersection
     intersec = False
     for i in circles_in_cluster:
-        if (sqrt((x_to_check - i.x)**2 + (y_to_check - i.y)**2) < (r_to_check + i.r)):
+        if (round((x_to_check - i.x)**2 + (y_to_check - i.y)**2,4) < round(((r_to_check + i.r)**2),4)): # I'm using round() because I was stuck
             intersec = True
             print("circle is intersecting")
-#    print("partie gauche",(x_to_check - i.x)**2 + (y_to_check - i.y)**2)
-#    print("partie droite",((r_to_check + i.r)**2))
+    print("partie gauche",(x_to_check - i.x)**2 + (y_to_check - i.y)**2)
+    print("partie droite",((r_to_check + i.r)**2))
     print("bool check intersection ->",intersec)
     return intersec
     
@@ -242,7 +243,7 @@ def take_radius_out(list):
         list_without_radius.append((item[0],item[1]))
     return list_without_radius
 
-generate_circles(5)
+generate_circles(6)
 print("\nlist:",list_of_circles)  
 print("\nthere are",len(list_of_circles)," elements in the list")   
 
