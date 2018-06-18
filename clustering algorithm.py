@@ -111,17 +111,14 @@ class Cluster:
         print("{0} elements in list of possib are going to be compared to take best one".format(len(list_of_checked_elements)))
         self.add_circle_to_cluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
         self.changeId(counter_for_cluster_id) # pretend to create new cluster. Instead, change cluster id and increment counter
-# =============================================================================
-#         
-#     def addCluster(self,cluster2):
-#         """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
-#         # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
-#         for pair1 in it.combinations(self.circles,2):
-#             if ((pair1[1].x - pair1[0].x)**2 + (pair1[1].y - pair1[0].y)**2 == (pair1[0].r + pair1[1].r)**2): # check if the 2 circles of the pair are touching themselves
-#                 for pair2 in it.combinations(cluster2.circles,2):
-#                     if ((pair2[1].x - pair2[0].x)**2 + (pair2[1].y - pair2[0].y)**2 == (pair2[0].r + pair2[1].r)**2): # check if the 2 circles of the pair are touching themselves
-#                         
-# =============================================================================
+        
+    def addCluster(self,cluster2):
+        """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
+        # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
+        list_of_possib = combineTwoPairs(self,cluster2)
+        # Check intersections
+        # Choose best possibility
+                        
         
     
     def chooseBestPossib(self,list):
@@ -220,6 +217,13 @@ def twoPlusOne(cluster,singleton): # 2 + 1 function
     list_to_return.append(LeafCircle(singleton.id,C3_symmetric[0][0],C3_symmetric[1][0],r3))
     
     return list_to_return        
+
+def combineTwoPairs(cluster1,cluster2):
+    for pair1 in it.combinations(cluster1,2):
+        if (round((pair1[1].x - pair1[0].x)**2 + (pair1[1].y - pair1[0].y)**2,4) == round((pair1[0].r + pair1[1].r)**2,4)): # check if the 2 circles of the pair are touching themselves
+            for pair2 in it.combinations(cluster2.circles,2):
+                if (round((pair2[1].x - pair2[0].x)**2 + (pair2[1].y - pair2[0].y)**2,4) == round((pair2[0].r + pair2[1].r)**2,4)): # check if the 2 circles of the pair are touching themselves
+                    possib_circle_1 = twoPlusOne(pair1,pair2[0]) # My decision: take only 1 set of solutions                    
     
 # ------------------------------------------------------------------ #
 # ------------------------- LINKAGE TABLE CREATION ----------------- #
