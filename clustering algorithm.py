@@ -94,6 +94,7 @@ class Cluster:
         """ Function that adds a singleton to a cluster. 
         For each pair of the cluster, if the pair is not too distant, do 1+2 function and store the 2 possibilities. Then, exclude all overlapping elements and choose best possib. Adds the circle object to the list of circles of the cluster, and 'creates' new cluster by changing id   """
         list_of_possib = [] # list of possibilities (should contain LeafCircle objects)
+        list_of_checked_elements = [] # list that contains legal elements (no overlapping)
         i = 0
         print("There are {0} circles in the cluster".format(len(self.circles)))
         for pair in it.combinations(self.circles,2):
@@ -103,25 +104,25 @@ class Cluster:
         for element in list_of_possib: # remove overlapping elements
             print("{0}th element is going to be checked for intersection".format(i))
             i += 1
-            if (checkIntersection(self,element) == True):
-                print("length list of possib before removal",len(list_of_possib))
-                list_of_possib.remove(element) # TO TEST
-                print("length list of possib after removal",len(list_of_possib))
+            if (checkIntersection(self,element) == False):
+                list_of_checked_elements.append(element)           
+                print("An element has been added to list of checked elements")
         print("{0} elem have been checked".format(i))
-# 2nd round of checking intersection
-        i = 0
-        print("2ND ROUND -> There are now {0} elem in list of possib".format(len(list_of_possib)))
-        for element in list_of_possib: # remove overlapping elements
-            print("{0}th element is going to be checked for intersection".format(i))
-            i += 1
-            if (checkIntersection(self,element) == True):
-                print("length list of possib before removal",len(list_of_possib))
-                list_of_possib.remove(element) # TO TEST
-                print("length list of possib after removal",len(list_of_possib))
-        print("{0} elem have been checked ----- END OF CHECK".format(i))        
-        
-        self.add_circle_to_cluster(self.chooseBestPossib(list_of_possib)) # take best possib and add it to the cluster
+        print("{0} elements in list of possib are going to be compared to take best one".format(len(list_of_checked_elements)))
+        self.add_circle_to_cluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
         self.changeId(counter_for_cluster_id) # pretend to create new cluster. Instead, change cluster id and increment counter
+# =============================================================================
+#         
+#     def addCluster(self,cluster2):
+#         """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
+#         # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
+#         for pair1 in it.combinations(self.circles,2):
+#             if ((pair1[1].x - pair1[0].x)**2 + (pair1[1].y - pair1[0].y)**2 == (pair1[0].r + pair1[1].r)**2): # check if the 2 circles of the pair are touching themselves
+#                 for pair2 in it.combinations(cluster2.circles,2):
+#                     if ((pair2[1].x - pair2[0].x)**2 + (pair2[1].y - pair2[0].y)**2 == (pair2[0].r + pair2[1].r)**2): # check if the 2 circles of the pair are touching themselves
+#                         
+# =============================================================================
+        
     
     def chooseBestPossib(self,list):
         """ Function that computes the best possibility to place a new circle in a cluster to have a circle shape. Requires a Cluster object and a list of LeafCircle possibilities """
@@ -179,11 +180,11 @@ def checkIntersection(cluster,circle_to_check):
     circles_in_cluster = cluster.circles # list of circles (as LeafCircle objects) that are in the cluster to which we want to check any intersection
     intersec = False
     for i in circles_in_cluster:
-        if (round((x_to_check - i.x)**2 + (y_to_check - i.y)**2,4) < round(((r_to_check + i.r)**2),4)): # I'm using round() because I was stuck
+        if (round(sqrt((x_to_check - i.x)**2 + (y_to_check - i.y)**2),4) < round((r_to_check + i.r),4)): # I'm using round() because I was stuck
             intersec = True
             print("circle is intersecting")
-    print("partie gauche",(x_to_check - i.x)**2 + (y_to_check - i.y)**2)
-    print("partie droite",((r_to_check + i.r)**2))
+    print("partie gauche",round((x_to_check - i.x)**2 + (y_to_check - i.y)**2,4))
+    print("partie droite",round(((r_to_check + i.r)**2),4))
     print("bool check intersection ->",intersec)
     return intersec
     
@@ -243,7 +244,7 @@ def take_radius_out(list):
         list_without_radius.append((item[0],item[1]))
     return list_without_radius
 
-generate_circles(6)
+generate_circles(5)
 print("\nlist:",list_of_circles)  
 print("\nthere are",len(list_of_circles)," elements in the list")   
 
