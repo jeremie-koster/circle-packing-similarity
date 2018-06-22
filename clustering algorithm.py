@@ -87,7 +87,8 @@ class Cluster:
             print("length of list cluster after removal of singleton, should be -1 -> ",len(list_of_clusters))
             print("Join done! Singleton added to cluster!")
         elif (circle_to_join.id >= number_of_leaves): # joining cluster with cluster
-            print("Not developped yet") # TODO: function n + n (see Mike's idea)
+            print("Two clusters to be joined...")
+            self.addCluster(circle_to_join)
 #            print("Join done!")
         
     def addSingleton(self,singleton): # n + 1 function
@@ -104,7 +105,7 @@ class Cluster:
         for element in list_of_possib: # remove overlapping elements
             print("{0}th element is going to be checked for intersection".format(i))
             i += 1
-            if (checkIntersection(self,element) == False):
+            if (checkIntersection(self.circles,element) == False):
                 list_of_checked_elements.append(element)           
                 print("An element has been added to list of checked elements")
         print("{0} elem have been checked".format(i))
@@ -115,10 +116,16 @@ class Cluster:
     def addCluster(self,cluster2):
         """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
         # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
-        list_of_possib = combineTwoPairs(self,cluster2)
+        print("Cluster {0} will be joined with cluster {1}".format(self.id,cluster2.id))
+        list_of_possib = combineTwoPairs(self,cluster2) # contains list of Cluster objects that could fit to cluster2
+        print("There are {0} possibiities".format(len(list_of_possib)))
         # Check intersections
+        list_of_valid_possib = []
+        for possib in list_of_possib:
+            if (checkConflicts(self,possib) == False):
+                list_of_valid_possib.append(possib)
         # Choose best possibility
-                        
+        print("The list of valid possib is ",len(list_of_valid_possib))                        
         
     
     def chooseBestPossib(self,list):
@@ -174,16 +181,33 @@ def checkIntersection(cluster,circle_to_check):
     x_to_check = circle_to_check.x
     y_to_check = circle_to_check.y
     r_to_check = circle_to_check.r
-    circles_in_cluster = cluster.circles # list of circles (as LeafCircle objects) that are in the cluster to which we want to check any intersection
+    circles_in_cluster = cluster # list of circles (as LeafCircle objects) that are in the cluster to which we want to check any intersection
     intersec = False
     for i in circles_in_cluster:
         if (round(sqrt((x_to_check - i.x)**2 + (y_to_check - i.y)**2),4) < round((r_to_check + i.r),4)): # I'm using round() because I was stuck
             intersec = True
             print("circle is intersecting")
+            break
     print("partie gauche",round((x_to_check - i.x)**2 + (y_to_check - i.y)**2,4))
     print("partie droite",round(((r_to_check + i.r)**2),4))
     print("bool check intersection ->",intersec)
     return intersec
+
+def checkConflicts(cluster,cluster_to_check):
+    """ Checks if any circles of 2nd cluster is intersecting with any circle of 1st cluster. Returns True if there is at least 1 intersection. If not, returns False """
+    circles_in_cluster = cluster.circles
+    circles_of_cluster_to_check = cluster_to_check.circles
+    
+    intersec = False
+    for suspect_circle in circles_of_cluster_to_check:
+        for circle in circles_in_cluster:
+            if (round(sqrt((suspect_circle.x - circle.x)**2 + (suspect_circle.y - circle.y)**2),4) < round((suspect_circle.r + circle.r),4)): # I'm using round() because I was stuck
+                intersec = True
+                print("circle is intersecting")
+                break
+        break
+    return intersec
+
     
 def twoPlusOne(cluster,singleton): # 2 + 1 function
     """ Function that computes coordinates (x,y) and (x',y') of 3rd circle C3 that touches the 2 other circles C1 and C2. Takes as parameters tuples of the coordinates and radius of C1 and C2, and the radius of C3 """
@@ -204,8 +228,6 @@ def twoPlusOne(cluster,singleton): # 2 + 1 function
     matrix = transform([C1[0],C1[1]],alpha)
     C3 = matrix@C3_before_transformation
     C3_symmetric = matrix@C3_symmetric_before_transformation
-#    print("C3 : {0},{1},{2}".format(C3[0][0],C3[1][0],r3))
-#    print("C3 symmetric : {0},{1},{2}".format(C3_symmetric[0][0],C3_symmetric[1][0],r3))
 # =============================================================================
 #     circle = plt.Circle((C3[0],C3[1]),r3,ec = 'r',fill=False)
 #     ax2.add_artist(circle)
@@ -219,12 +241,62 @@ def twoPlusOne(cluster,singleton): # 2 + 1 function
     return list_to_return        
 
 def combineTwoPairs(cluster1,cluster2):
-    for pair1 in it.combinations(cluster1,2):
+    list_of_possib = []
+    list_of_legal_possib = []
+    for i in cluster2.circles:
+        print("element type is ",type(i))
+    for pair1 in it.combinations(cluster1.circles,2):
         if (round((pair1[1].x - pair1[0].x)**2 + (pair1[1].y - pair1[0].y)**2,4) == round((pair1[0].r + pair1[1].r)**2,4)): # check if the 2 circles of the pair are touching themselves
             for pair2 in it.combinations(cluster2.circles,2):
                 if (round((pair2[1].x - pair2[0].x)**2 + (pair2[1].y - pair2[0].y)**2,4) == round((pair2[0].r + pair2[1].r)**2,4)): # check if the 2 circles of the pair are touching themselves
-                    possib_circle_1 = twoPlusOne(pair1,pair2[0]) # My decision: take only 1 set of solutions                    
-    
+                    possib_for_this_pair = []
+                    possib_circle_1 = twoPlusOne(pair1,pair2[0]) # Two possib for 1st circle of 2nd pair
+                    # Now, computing 4 (x2) possibilities for 2nd circle of 2nd pair
+                    possib_for_this_pair.extend(twoPlusOne([possib_circle_1[0],pair1[0]],pair2[1]))
+                    possib_for_this_pair.extend(twoPlusOne([possib_circle_1[0],pair1[1]],pair2[1]))
+                    possib_for_this_pair.extend(twoPlusOne([possib_circle_1[1],pair1[0]],pair2[1]))
+                    possib_for_this_pair.extend(twoPlusOne([possib_circle_1[1],pair1[1]],pair2[1]))
+                    print("We have computed the coord of the 4 possibilities")
+                    # Remove possibs of 2nd circle of 2nd pair that overlap just with the first pair - the whole cluster needs to be checked for overlappin afterwards. We should have 4 possibs left for 2nd circle of 2nd pair with 2 possib for 1st circle
+                    for element in possib_for_this_pair: 
+                        if (checkIntersection(pair1,element) == False):
+                            list_of_legal_possib.append(element)
+# Put together the 4 new pair possibilities that don't overlap with 1st pair
+                    list_of_4_pairs = []
+                    list_of_4_pairs.append([possib_circle_1[0],list_of_legal_possib[0]])
+                    list_of_4_pairs.append([possib_circle_1[0],list_of_legal_possib[1]])
+                    list_of_4_pairs.append([possib_circle_1[1],list_of_legal_possib[2]])
+                    list_of_4_pairs.append([possib_circle_1[1],list_of_legal_possib[3]])
+                    cluster_for_each_pair = [] # Replicas of cluster2 transformed according to new pair computed
+                    print("We have removed overlapping elements")
+                    # For each of the 4 new valid pair, compute the transformation matrix and apply it to each circle of cluster2 (because it's the one that is moving)
+                    for pair in list_of_4_pairs:
+                        print("Trying to compute coord of all circles for a pair")
+                        tx = pair2[0].x - possib_circle_1[0].x
+                        ty = pair2[0].y - possib_circle_1[0].y
+                        coord_of_4th_circle_against_origin = (pair[1].x - pair2[1].x,pair[1].y - pair2[1].y)
+                        alpha = atan2(coord_of_4th_circle_against_origin[1],coord_of_4th_circle_against_origin[0])
+                        matrix = transform([tx,ty],alpha)
+                        list_of_transformed_circles = []
+                        cluster2_to_be_transformed = cluster2
+                        print("length of cluster2.circles is ",len(cluster2_to_be_transformed.circles))
+                        for circle in cluster2_to_be_transformed.circles:
+                            print("It's a {0}".format(type(circle)))
+                            print("matrix:",matrix)
+                            print("coord:",circle.getHomoCoord())
+                            new_coord = matrix@circle.getHomoCoord()
+                            circle.x = new_coord[0]
+                            circle.y = new_coord[1]
+                            list_of_transformed_circles.append(circle)
+                            print("length of transformed circles is:",len(list_of_transformed_circles))
+                        cluster2_to_be_transformed.circles = list_of_transformed_circles
+                        cluster_for_each_pair.append(cluster2_to_be_transformed)
+                        print("There is {0} new cluster for 1 possib".format(len(cluster_for_each_pair)))
+                    list_of_possib.append(cluster_for_each_pair)
+    return list_of_possib
+                        
+                            
+                            
 # ------------------------------------------------------------------ #
 # ------------------------- LINKAGE TABLE CREATION ----------------- #
 # ------------------------------------------------------------------ #        
