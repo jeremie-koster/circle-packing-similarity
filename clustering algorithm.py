@@ -38,7 +38,7 @@ class LeafCircle:
         self.y = y
         self.r = radius
         
-    def getHomoCoord(self):
+    def getCentreCoord(self):
         return np.array([[self.x],[self.y],[1]])
     
     def joinWith (self,circle_to_join): # general function
@@ -55,29 +55,34 @@ class LeafCircle:
         circle_to_add.x = self.r + circle_to_add.r # 2nd circle touches 1st on 1 point 
         circle_to_add.y = 0 # 2nd circle on x axis
         list_of_clusters.append(Cluster(counter_for_cluster_id,self,circle_to_add)) # create new cluster
-        print("homo coord",circle_to_add.getHomoCoord())
+        print("homo coord",circle_to_add.getCentreCoord())
         print("x of circle to add",circle_to_add.x)
         list_of_clusters.remove(self) # and remove both leaf objects from list of clusters
         list_of_clusters.remove(circle_to_add) # same
         counter_for_cluster_id += 1
         print("counter cluster id:",counter_for_cluster_id)
-           
+        
+# New version         
 class Cluster:
     def __init__(self,id,LeafCircle1,LeafCircle2):
         self.id = id
-        self.circles = []
-        self.add_circle_to_cluster(LeafCircle1)
-        self.add_circle_to_cluster(LeafCircle2)
-        
+        self.centres = []
+        self.radii = []
+        self.leaves_id = []
+        self.addLeafToCluster(LeafCircle1)
+        self.addLeafToCluster(LeafCircle2)
+    
+    def addLeafToCluster(self,circle_to_add):
+        self.centres.append(np.array([[circle_to_add.x],[circle_to_add.y],[1]]))
+        self.radii.append(circle_to_add.r)
+        self.leaves_id.append(circle_to_add.id)
+    
     def changeId(self,new_id):
         """ Function to use when 'creating' new cluster after a join of 2 sub-clusters. Instead of deleting old cluster and create a new one after the join, we change the id and increment the counter for later use """
         global counter_for_cluster_id
         self.id = new_id
         counter_for_cluster_id += 1
         print("counter cluster id:",counter_for_cluster_id)
-        
-    def add_circle_to_cluster (self,circle_to_add):
-        self.circles.append(circle_to_add)
         
     def joinWith(self,circle_to_join):
         if (circle_to_join.id < number_of_leaves): # joining cluster with singleton
@@ -90,7 +95,7 @@ class Cluster:
             print("Two clusters to be joined...")
             self.addCluster(circle_to_join)
 #            print("Join done!")
-        
+
     def addSingleton(self,singleton): # n + 1 function
         """ Function that adds a singleton to a cluster. 
         For each pair of the cluster, if the pair is not too distant, do 1+2 function and store the 2 possibilities. Then, exclude all overlapping elements and choose best possib. Adds the circle object to the list of circles of the cluster, and 'creates' new cluster by changing id   """
@@ -98,35 +103,28 @@ class Cluster:
         list_of_checked_elements = [] # list that contains legal elements (no overlapping)
         i = 0
         print("There are {0} circles in the cluster".format(len(self.circles)))
-        for pair in it.combinations(self.circles,2):
+        # we want to select unique pairs of circles 
+        for two_ids in it.combinations(self.leaves_id,2):
+            index_of_pair1 = self.leaves_id.index(two_ids[0]) # get index of both ids
+            index_of_pair2 = self.leaves_id.index(two_ids[1])
+            coord_of_pair1 = self.centres[index_of_pair1].getCentreCoord()
+            coord_of_pair2 = self.centres[index_of_pair2].getCentreCoord()
+            pair1_circle = LeafCircle(two_ids[0],coord_of_pair1[0][0],coord_of_pair1[1][0],self.radii[index_of_pair1])
+            pair2_circle = LeafCircle(two_ids[1],coord_of_pair2[0][0],coord_of_pair2[1][0],self.radii[index_of_pair2])
+            pair = (pair1_circle,pair2_circle) # this is the pair of circles
             if ((pair[1].x - pair[0].x)**2 + (pair[1].y - pair[0].y)**2 <= ((2*singleton.r) + pair[0].r + pair[1].r)**2): # check if the circles of the pair are not too distant from each other
-                list_of_possib.extend(twoPlusOne(pair,singleton)) # add the 2 possib when doing 2 + 1
+                list_of_possib.extend(twoPlusOne(pair,singleton)) # compute 2 possib of 2 + 1
         print("There are {0} elem in list of possib".format(len(list_of_possib)))
         for element in list_of_possib: # remove overlapping elements
             print("{0}th element is going to be checked for intersection".format(i))
             i += 1
-            if (checkIntersection(self.circles,element) == False):
+            if (checkIntersection(self,element) == False):
                 list_of_checked_elements.append(element)           
                 print("An element has been added to list of checked elements")
         print("{0} elem have been checked".format(i))
         print("{0} elements in list of possib are going to be compared to take best one".format(len(list_of_checked_elements)))
         self.add_circle_to_cluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
         self.changeId(counter_for_cluster_id) # pretend to create new cluster. Instead, change cluster id and increment counter
-        
-    def addCluster(self,cluster2):
-        """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
-        # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
-        print("Cluster {0} will be joined with cluster {1}".format(self.id,cluster2.id))
-        list_of_possib = combineTwoPairs(self,cluster2) # contains list of Cluster objects that could fit to cluster2
-        print("There are {0} possibiities".format(len(list_of_possib)))
-        # Check intersections
-        list_of_valid_possib = []
-        for possib in list_of_possib:
-            if (checkConflicts(self,possib) == False):
-                list_of_valid_possib.append(possib)
-        # Choose best possibility
-        print("The list of valid possib is ",len(list_of_valid_possib))                        
-        
     
     def chooseBestPossib(self,list):
         """ Function that computes the best possibility to place a new circle in a cluster to have a circle shape. Requires a Cluster object and a list of LeafCircle possibilities """
@@ -134,8 +132,10 @@ class Cluster:
         
         for possib in list:
             list_of_distances = [] # contains the longest dist for the current possib
-            for circle in self.circles:
-                d = sqrt((possib.y - circle.y)**2 + (possib.x - circle.x)**2)    
+            for i in range(len(self.leaves_id)):
+                current_x = self.centres[i][0][0]
+                current_y = self.centres[i][1][0]
+                d = sqrt((possib.y - current_y)**2 + (possib.x - current_x)**2)    
                 if (len(list_of_distances) == 0): # for the first iteration
                     list_of_distances.append((d,possib))
                 elif (d > list_of_distances[0][0]): # replace element if d is bigger   
@@ -150,7 +150,101 @@ class Cluster:
                 del longest_distances[1]
         print("length longest distances list",len(longest_distances))
         return longest_distances[0][1] # return LeafCircle object corresponding to smallest dist
+
     
+# =============================================================================
+# class Cluster:
+#     def __init__(self,id,LeafCircle1,LeafCircle2):
+#         self.id = id
+#         self.circles = []
+#         self.add_circle_to_cluster(LeafCircle1)
+#         self.add_circle_to_cluster(LeafCircle2)
+#         
+#     def changeId(self,new_id):
+#         """ Function to use when 'creating' new cluster after a join of 2 sub-clusters. Instead of deleting old cluster and create a new one after the join, we change the id and increment the counter for later use """
+#         global counter_for_cluster_id
+#         self.id = new_id
+#         counter_for_cluster_id += 1
+#         print("counter cluster id:",counter_for_cluster_id)
+#         
+#     def add_circle_to_cluster (self,circle_to_add):
+#         self.circles.append(circle_to_add)
+#         
+#     def joinWith(self,circle_to_join):
+#         if (circle_to_join.id < number_of_leaves): # joining cluster with singleton
+#             self.addSingleton(circle_to_join)
+#             print("length of list cluster before removal of singleton ",len(list_of_clusters))
+#             list_of_clusters.remove(circle_to_join)
+#             print("length of list cluster after removal of singleton, should be -1 -> ",len(list_of_clusters))
+#             print("Join done! Singleton added to cluster!")
+#         elif (circle_to_join.id >= number_of_leaves): # joining cluster with cluster
+#             print("Two clusters to be joined...")
+#             self.addCluster(circle_to_join)
+# #            print("Join done!")
+#         
+#     def addSingleton(self,singleton): # n + 1 function
+#         """ Function that adds a singleton to a cluster. 
+#         For each pair of the cluster, if the pair is not too distant, do 1+2 function and store the 2 possibilities. Then, exclude all overlapping elements and choose best possib. Adds the circle object to the list of circles of the cluster, and 'creates' new cluster by changing id   """
+#         list_of_possib = [] # list of possibilities (should contain LeafCircle objects)
+#         list_of_checked_elements = [] # list that contains legal elements (no overlapping)
+#         i = 0
+#         print("There are {0} circles in the cluster".format(len(self.circles)))
+#         for pair in it.combinations(self.circles,2):
+#             if ((pair[1].x - pair[0].x)**2 + (pair[1].y - pair[0].y)**2 <= ((2*singleton.r) + pair[0].r + pair[1].r)**2): # check if the circles of the pair are not too distant from each other
+#                 list_of_possib.extend(twoPlusOne(pair,singleton)) # add the 2 possib when doing 2 + 1
+#         print("There are {0} elem in list of possib".format(len(list_of_possib)))
+#         for element in list_of_possib: # remove overlapping elements
+#             print("{0}th element is going to be checked for intersection".format(i))
+#             i += 1
+#             if (checkIntersection(self.circles,element) == False):
+#                 list_of_checked_elements.append(element)           
+#                 print("An element has been added to list of checked elements")
+#         print("{0} elem have been checked".format(i))
+#         print("{0} elements in list of possib are going to be compared to take best one".format(len(list_of_checked_elements)))
+#         self.add_circle_to_cluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
+#         self.changeId(counter_for_cluster_id) # pretend to create new cluster. Instead, change cluster id and increment counter
+#         
+#     def addCluster(self,cluster2):
+#         """ Cluster 1 is fixed. Adding cluster 2 agains cluster 1. """
+#         # TODO: To reduce computational cost, make sure that both pairs are on the outside layer of the cluster
+#         print("Cluster {0} will be joined with cluster {1}".format(self.id,cluster2.id))
+#         list_of_possib = combineTwoPairs(self,cluster2) # contains list of Cluster objects that could fit to cluster2
+#         print("There are {0} possibiities".format(len(list_of_possib)))
+#         # Check intersections
+#         list_of_valid_possib = []
+#         for possib in list_of_possib:
+#             if (checkConflicts(self,possib) == False):
+#                 list_of_valid_possib.append(possib)
+#         # Choose best possibility
+#         print("The list of valid possib is ",len(list_of_valid_possib))                        
+#         
+#     
+#     def chooseBestPossib(self,list):
+#         """ Function that computes the best possibility to place a new circle in a cluster to have a circle shape. Requires a Cluster object and a list of LeafCircle possibilities """
+#         longest_distances = [] # list of the biggest distances for each possibility
+#         
+#         for possib in list:
+#             list_of_distances = [] # contains the longest dist for the current possib
+#             for i in range(len(self.leaves_id)):
+#                 current_x = self.centres[i][0][0]
+#                 current_y = self.centres[i][1][0]
+#                 d = sqrt((possib.y - current_y)**2 + (possib.x - current_x)**2)    
+#                 if (len(list_of_distances) == 0): # for the first iteration
+#                     list_of_distances.append((d,possib))
+#                 elif (d > list_of_distances[0][0]): # replace element if d is bigger   
+#                     list_of_distances.pop(0)
+#                     list_of_distances.append((d,possib))
+#             longest_distances.append(list_of_distances[0])
+#         
+#         while len(longest_distances) > 1: # extract the LeafCircle corresp. to small dist
+#             if (longest_distances[0][0] >= longest_distances[1][0]):
+#                 del longest_distances[0]
+#             elif (longest_distances[0][0] < longest_distances[1][0]):
+#                 del longest_distances[1]
+#         print("length longest distances list",len(longest_distances))
+#         return longest_distances[0][1] # return LeafCircle object corresponding to smallest dist
+#     
+# =============================================================================
 # ------------------------------------------------------------------- #     
 # ------------------------- FUNCTIONS ------------------------------- #
 # ------------------------------------------------------------------- #
@@ -181,15 +275,17 @@ def checkIntersection(cluster,circle_to_check):
     x_to_check = circle_to_check.x
     y_to_check = circle_to_check.y
     r_to_check = circle_to_check.r
-    circles_in_cluster = cluster # list of circles (as LeafCircle objects) that are in the cluster to which we want to check any intersection
     intersec = False
-    for i in circles_in_cluster:
-        if (round(sqrt((x_to_check - i.x)**2 + (y_to_check - i.y)**2),4) < round((r_to_check + i.r),4)): # I'm using round() because I was stuck
+    for i in range(len(cluster.leaves_id)):
+        current_x = cluster.centres[i][0][0]
+        current_y = cluster.centres[i][1][0]
+        current_r = cluster.radii[i]
+        if (round(sqrt((x_to_check - current_x)**2 + (y_to_check - current_y)**2),4) < round((r_to_check + current_r),4)): 
             intersec = True
             print("circle is intersecting")
             break
-    print("partie gauche",round((x_to_check - i.x)**2 + (y_to_check - i.y)**2,4))
-    print("partie droite",round(((r_to_check + i.r)**2),4))
+    print("partie gauche",round((x_to_check - current_x)**2 + (y_to_check - current_y)**2,4))
+    print("partie droite",round(((r_to_check + current_r)**2),4))
     print("bool check intersection ->",intersec)
     return intersec
 
@@ -211,8 +307,8 @@ def checkConflicts(cluster,cluster_to_check):
     
 def twoPlusOne(cluster,singleton): # 2 + 1 function
     """ Function that computes coordinates (x,y) and (x',y') of 3rd circle C3 that touches the 2 other circles C1 and C2. Takes as parameters tuples of the coordinates and radius of C1 and C2, and the radius of C3 """
-    C1 = cluster[0].getHomoCoord()
-    C2 = cluster[1].getHomoCoord()
+    C1 = cluster[0].centre
+    C2 = cluster[1].centre
     r1,r2,r3 = cluster[0].r, cluster[1].r, singleton.r
     list_to_return = [] # will contain 2 LeafCircle objects of the 2 solutions
 
@@ -283,8 +379,8 @@ def combineTwoPairs(cluster1,cluster2):
                         for circle in cluster2_to_be_transformed.circles:
                             print("It's a {0}".format(type(circle)))
                             print("matrix:",matrix)
-                            print("coord:",circle.getHomoCoord())
-                            new_coord = matrix@circle.getHomoCoord()
+                            print("coord:",circle.centre)
+                            new_coord = matrix@circle.centre
                             circle.x = new_coord[0]
                             circle.y = new_coord[1]
                             list_of_transformed_circles.append(circle)
@@ -320,7 +416,7 @@ def take_radius_out(list):
         list_without_radius.append((item[0],item[1]))
     return list_without_radius
 
-generate_circles(5)
+generate_circles(2)
 print("\nlist:",list_of_circles)  
 print("\nthere are",len(list_of_circles)," elements in the list")   
 
@@ -368,11 +464,12 @@ ax2 = plt.subplot(223)
 plt.axis([-0.1,0.5,-0.3,0.5])
 ax2.set_aspect('equal')
 
-for circle in list_of_clusters[0].circles:
-    x = circle.x
-    y = circle.y
-    r = circle.r
-    circle = plt.Circle((x,y),r,fill=False)
+for i in range(len(list_of_clusters[0].leaves_id)):
+    print("Plotting circles...")
+    current_x = list_of_clusters[0].centres[i][0][0]
+    current_y = list_of_clusters[0].centres[i][1][0]
+    current_r = list_of_clusters[0].radii[i]
+    circle = plt.Circle((current_x,current_y),current_r,fill=False)
     ax2.add_artist(circle)
 
 
