@@ -102,13 +102,13 @@ class Cluster:
         list_of_possib = [] # list of possibilities (should contain LeafCircle objects)
         list_of_checked_elements = [] # list that contains legal elements (no overlapping)
         i = 0
-        print("There are {0} circles in the cluster".format(len(self.circles)))
+        print("There are {0} circles in the cluster".format(len(self.leaves_id)))
         # we want to select unique pairs of circles 
         for two_ids in it.combinations(self.leaves_id,2):
             index_of_pair1 = self.leaves_id.index(two_ids[0]) # get index of both ids
             index_of_pair2 = self.leaves_id.index(two_ids[1])
-            coord_of_pair1 = self.centres[index_of_pair1].getCentreCoord()
-            coord_of_pair2 = self.centres[index_of_pair2].getCentreCoord()
+            coord_of_pair1 = self.centres[index_of_pair1]
+            coord_of_pair2 = self.centres[index_of_pair2]
             pair1_circle = LeafCircle(two_ids[0],coord_of_pair1[0][0],coord_of_pair1[1][0],self.radii[index_of_pair1])
             pair2_circle = LeafCircle(two_ids[1],coord_of_pair2[0][0],coord_of_pair2[1][0],self.radii[index_of_pair2])
             pair = (pair1_circle,pair2_circle) # this is the pair of circles
@@ -123,7 +123,7 @@ class Cluster:
                 print("An element has been added to list of checked elements")
         print("{0} elem have been checked".format(i))
         print("{0} elements in list of possib are going to be compared to take best one".format(len(list_of_checked_elements)))
-        self.add_circle_to_cluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
+        self.addLeafToCluster(self.chooseBestPossib(list_of_checked_elements)) # take best possib and add it to the cluster
         self.changeId(counter_for_cluster_id) # pretend to create new cluster. Instead, change cluster id and increment counter
     
     def chooseBestPossib(self,list):
@@ -307,8 +307,8 @@ def checkConflicts(cluster,cluster_to_check):
     
 def twoPlusOne(cluster,singleton): # 2 + 1 function
     """ Function that computes coordinates (x,y) and (x',y') of 3rd circle C3 that touches the 2 other circles C1 and C2. Takes as parameters tuples of the coordinates and radius of C1 and C2, and the radius of C3 """
-    C1 = cluster[0].centre
-    C2 = cluster[1].centre
+    C1 = cluster[0]
+    C2 = cluster[1]
     r1,r2,r3 = cluster[0].r, cluster[1].r, singleton.r
     list_to_return = [] # will contain 2 LeafCircle objects of the 2 solutions
 
@@ -320,8 +320,8 @@ def twoPlusOne(cluster,singleton): # 2 + 1 function
     C3_symmetric_before_transformation = np.array([[x],[y_symmetric],[1]])
     
     # rotating and translating (transformation) the result for general case
-    alpha = atan2(C2[1]-C1[1],C2[0]-C1[0])
-    matrix = transform([C1[0],C1[1]],alpha)
+    alpha = atan2(C2.y - C1.y,C2.x - C1.x)
+    matrix = transform([C1.x,C1.y],alpha)
     C3 = matrix@C3_before_transformation
     C3_symmetric = matrix@C3_symmetric_before_transformation
 # =============================================================================
@@ -416,7 +416,7 @@ def take_radius_out(list):
         list_without_radius.append((item[0],item[1]))
     return list_without_radius
 
-generate_circles(2)
+generate_circles(6)
 print("\nlist:",list_of_circles)  
 print("\nthere are",len(list_of_circles)," elements in the list")   
 
